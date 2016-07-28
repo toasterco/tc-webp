@@ -1,0 +1,303 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="tc-webp-styles.html">
+
+<!--
+Image component with fallback(s). Image formats supported are:
+- webp
+- svg
+- png
+- jpg
+- gif
+
+Example:
+
+    <tc-webp
+      src="demo/images/myImage"
+      extensions="webp,png"
+      alt="My Image"
+      retina
+    ></tc-webp>
+
+@demo demo/index.html
+-->
+
+<dom-module id="tc-webp">
+  <template>
+    <style include="tc-webp-styles"></style>
+
+    <picture class="webp__picture">
+      <img class="webp__img" alt$="[[alt]]" on-load="_onImageLoaded">
+    </picture>
+
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+
+        is: 'tc-webp',
+
+        properties: {
+          /**
+           * Full path to base image, with or without extension
+           */
+          src: {
+            type: String,
+            value: ''
+          },
+
+          /**
+           * Comma separated list of required extensions, in desired order
+           * Default value is `webp,png`
+           */
+          extensions: {
+            type: String,
+            value: 'webp,png'
+          },
+
+          /**
+           * Whether to use retina
+           */
+          retina: {
+            type: Boolean,
+            value: false
+          },
+
+          /**
+           * Suffix for retina images. Default is `-2x`
+           */
+          retinaExtension: {
+            type: String,
+            value: '-2x'
+          },
+
+          /**
+           * Async timeout
+           */
+          timeout: {
+            type: Number,
+            value: 0
+          },
+
+          /**
+           * Alt attribute for the image
+           */
+          alt: {
+            type: String,
+            value: ''
+          },
+
+          /**
+           * Name of the image file excluding extension(s)
+           */
+          _basePath: String,
+
+          /**
+           * Has component been attached
+           */
+          _asyncAttached: Boolean,
+
+          /**
+           * Array of extension types to try and load
+           */
+          _extensionArray: {
+            type: Array,
+            computed: '_computeExtensionArray(extensions)'
+          }
+        },
+
+        observers: [
+          '_updateBaseVariables(src)',
+          '_updatePicture(_basePath, _extensionArray, _asyncAttached)'
+        ],
+
+        _mimeTypes: {
+          webp: 'image/webp',
+          svg: 'image/svg+xml',
+          png: 'image/png',
+          jpeg: 'image/jpeg',
+          jpg: 'image/jpeg',
+          gif: 'image/gif'
+        },
+
+        _defaultSrc: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
+
+        _picture: null,
+
+        _loaded: false,
+
+        _sourceElements: [],
+
+        /**
+         * Polymer lifecycle method. Component is ready, define component vars
+         * for the picture and image elements and set asyncAttached to false
+         */
+        ready: function() {
+          this._picture = Polymer.dom(this.root).querySelector('.webp__picture');
+          this._img = Polymer.dom(this.root).querySelector('.webp__img');
+          this._asyncAttached = false;
+        },
+
+        /**
+         * Polymer lifecycle method. Component has been attached and the
+         * asyncAttached var is set to true after a defined timeout period
+         * (default is 0)
+         */
+        attached: function() {
+          this.async(function() {
+            this._asyncAttached = true;
+          }, this.timeout);
+        },
+
+        /**
+         * `src` property was updated and observer triggered. Recalculate the
+         * basePath of the image, e.g. `myImage.png` becomes `myImage`, whereas
+         * if `myImage` was passed it, it will remain
+         *
+         * @param  {String} src New src property value
+         */
+        _updateBaseVariables: function(src) {
+          var extIndex = src.lastIndexOf('.');
+          this._basePath = extIndex > -1 ? src.substring(0, extIndex) : src;
+        },
+
+        /**
+         * `extentions` property was updated, ensure that extensions are valid
+         * based on mimetypes object and return array of all valid extensions
+         *
+         * @param  {Array} extensions `this.extensions`
+         * @return {Array} Validated array of image extensions
+         */
+        _computeExtensionArray: function(extensions) {
+          var trimExt;
+
+          return extensions.split(',').map(function(ext) {
+            trimExt = ext.trim().toLowerCase();
+
+            if (this._mimeTypes.hasOwnProperty(trimExt)) {
+              return trimExt;
+            } else {
+              throw 'Extension not recognised: ' + trimExt;
+            }
+          }, this);
+        },
+
+        /**
+         * `_basePath`, `_extensionArray` or `asyncAttached` property was
+         * updated.
+         *
+         * @param  {String} basePath `_basePath`
+         * @param  {Array} extensionArray `_extensionArray`
+         * @param  {Boolean} asyncAttached `_asyncAttached`
+         */
+        _updatePicture: function(basePath, extensionArray, asyncAttached) {
+          this._setUnloaded();
+
+          if (!asyncAttached) {
+            this._img.src = this._defaultSrc;
+            return;
+          }
+
+          var source;
+          var ext;
+          var srcset;
+
+          this._removeSourceElements();
+
+          for (var i = 0, len = extensionArray.length - 1; i < len; i = i + 1) {
+            ext = extensionArray[i];
+            srcset = this._getSrcSet(basePath, ext);
+
+            // source element doesn't use src attribute for picture
+            // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/source
+            source = document.createElement('source');
+            source.setAttribute('srcset', srcset);
+            source.setAttribute('type', this._mimeTypes[ext]);
+
+            this._sourceElements.push(source);
+            this._picture.insertBefore(source, this._img);
+          }
+
+          ext = extensionArray[extensionArray.length - 1];
+          srcset = this._getSrcSet(basePath, ext);
+
+          if (this.retina && ext !== '.svg') {
+            this._img.removeAttribute('src');
+            this._img.setAttribute('srcset', srcset);
+            this._img.setAttribute('alt', this.alt);
+          } else {
+            this._img.src = srcset;
+          }
+
+          // picturefill({
+          //   elements: [this._img]
+          // });
+        },
+
+        /**
+         * Compute the value of the `srcset` property for img tag
+         *
+         * @param  {[type]} basePath [description]
+         * @param  {[type]} ext      [description]
+         * @return {[type]}          [description]
+         */
+        _getSrcSet: function(basePath, ext) {
+          var srcset;
+
+          ext = ext.indexOf('.') === 0 ? ext : '.' + ext;
+          srcset = basePath + ext;
+
+          if (this.retina) {
+            srcset += ' 1x, ' + basePath + this.retinaExtension + ext + ' 2x';
+          }
+
+          return srcset;
+        },
+
+        _removeSourceElements: function() {
+          var i = this._sourceElements.length;
+
+          while (i > 0) {
+            this._picture.removeChild(this._sourceElements[i - 1]);
+            this._sourceElements[i - 1] = null;
+
+            i = i - 1;
+          }
+
+          this._sourceElements = [];
+        },
+
+        _setUnloaded: function() {
+          if (!this._loaded) {
+            return;
+          }
+
+          this._loaded = false;
+          this._picture.classList.remove('loaded');
+        },
+
+        _setLoaded: function() {
+          if (this._loaded) {
+            return;
+          }
+
+          this._loaded = true;
+          this._picture.classList.add('loaded');
+        },
+
+        _onImageLoaded: function() {
+          // Safari doesn't seem to set e.target correctly?
+          if (this._img.src === this._defaultSrc) {
+            return;
+          }
+
+          this._setLoaded();
+        }
+
+      });
+
+    })();
+  </script>
+</dom-module>
