@@ -230,10 +230,6 @@ Example:
           } else {
             this._img.src = srcset;
           }
-
-          // picturefill({
-          //   elements: [this._img]
-          // });
         },
 
         /**
@@ -256,6 +252,10 @@ Example:
           return srcset;
         },
 
+        /**
+         * Remove all `<source>` child elements from the parent
+         * `<picture>` element
+         */
         _removeSourceElements: function() {
           var i = this._sourceElements.length;
 
@@ -269,6 +269,10 @@ Example:
           this._sourceElements = [];
         },
 
+        /**
+         * Set image to unloaded status, making `this._loaded` falsy and remove
+         * `loaded` class from the `<picture>` element
+         */
         _setUnloaded: function() {
           if (!this._loaded) {
             return;
@@ -278,6 +282,10 @@ Example:
           this._picture.classList.remove('loaded');
         },
 
+        /**
+         * Set image to loaded, making `this._loaded` truthy and add
+         * `loaded` class from the `<picture>` element
+         */
         _setLoaded: function() {
           if (this._loaded) {
             return;
@@ -287,6 +295,10 @@ Example:
           this._picture.classList.add('loaded');
         },
 
+        /**
+         * Callback when image has been successfully loaded. As long as it
+         * is not the default image, call `_setLoaded` function
+         */
         _onImageLoaded: function() {
           // Safari doesn't seem to set e.target correctly?
           if (this._img.src === this._defaultSrc) {
