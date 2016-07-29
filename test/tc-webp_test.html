@@ -18,12 +18,73 @@
       </template>
     </test-fixture>
 
+    <test-fixture id="image-load-extension">
+      <template>
+        <tc-webp
+          src="../demo/images/myImage.png"
+        ></tc-webp>
+      </template>
+    </test-fixture>
+
+    <test-fixture id="image-no-extension">
+      <template>
+        <tc-webp
+          src="../demo/images/myImage"
+        ></tc-webp>
+      </template>
+    </test-fixture>
+
     <script>
-      suite('tc-webp', function() {
+      suite('tc-webp basic', function() {
 
         test('instantiating the element works', function() {
           var element = fixture('basic');
           assert.equal(element.is, 'tc-webp');
+        });
+
+        test('component has img element containing default base64 src', function() {
+          var el = fixture('basic');
+          var img = el.$$('img');
+          assert.equal(img.src, 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=');
+        });
+
+        test('component has img with empty alt text', function() {
+          var el = fixture('basic');
+          var img = el.$$('img');
+          assert.equal(img.alt, '');
+        });
+
+      });
+
+      suite('tc-webp src with file extension', function() {
+
+        test('instantiating the element works', function() {
+          var element = fixture('image-load-extension');
+          assert.equal(element.is, 'tc-webp');
+        });
+
+        test('fires load event', function(done) {
+          var el = fixture('image-load-extension');
+          el.addEventListener('tc-webp-loaded', function(event) {
+            done();
+          });
+        });
+
+      });
+
+      suite('tc-webp src with no file extension', function() {
+
+        test('instantiating the element works', function() {
+          var element = fixture('image-no-extension');
+          assert.equal(element.is, 'tc-webp');
+        });
+
+        test('fires load event', function(done) {
+          var el = fixture('image-load-extension');
+          el.addEventListener('tc-webp-loaded', function(event) {
+            assert.equal(1, 1);
+            done();
+          });
         });
 
       });

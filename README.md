@@ -1,6 +1,6 @@
 # \<tc-webp\>
 
-Polymer component to display webp images, with optional fallback to other image formats
+A simple Polymer component to display webp images, with optional fallback to other formats. Also allows optional loading of retina assets.
 
 ## Install the Polymer-CLI
 
@@ -34,5 +34,7 @@ $ polymer serve build/bundled
 ```
 $ polymer test
 ```
+Running `polymer test` will run tests. By default, selenium tests will be run against all browsers on your OS. On OSX this requires the
+[SafariDriver extension](https://github.com/SeleniumHQ/selenium/wiki/SafariDriver#getting-started) to be installed.
 
-Your application is already set up to be tested via [web-component-tester](https://github.com/Polymer/web-component-tester). Run `polymer test` to run your application's test suite locally.
+If you want to run tests against individual browsers, run `polymer test -l chrome`
