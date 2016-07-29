@@ -26,7 +26,12 @@ Example:
     <style include="tc-webp-styles"></style>
 
     <picture class="webp__picture">
-      <img class="webp__img" alt$="[[alt]]" on-load="_onImageLoaded">
+      <img
+        class="webp__img"
+        alt$="[[alt]]"
+        on-load="_onImageLoaded"
+        on-error="_onImageLoadError"
+      >
     </picture>
 
   </template>
@@ -181,7 +186,7 @@ Example:
             } else {
               throw 'Extension not recognised: ' + trimExt;
             }
-          }, this);
+          }, this).reverse();
         },
 
         /**
@@ -235,9 +240,9 @@ Example:
         /**
          * Compute the value of the `srcset` property for img tag
          *
-         * @param  {[type]} basePath [description]
-         * @param  {[type]} ext      [description]
-         * @return {[type]}          [description]
+         * @param  {String} basePath
+         * @param  {String} ext
+         * @return {String} Value for srcset attribute
          */
         _getSrcSet: function(basePath, ext) {
           var srcset;
@@ -296,16 +301,62 @@ Example:
         },
 
         /**
+         * Fire an event to tell parent events that image has loaded
+         *
+         * @event tc-webp-loaded
+         */
+        _dispatchLoaded: function() {
+          this.fire('tc-webp-loaded');
+        },
+
+        /**
          * Callback when image has been successfully loaded. As long as it
          * is not the default image, call `_setLoaded` function
          */
         _onImageLoaded: function() {
           // Safari doesn't seem to set e.target correctly?
+          console.log('loaded');
           if (this._img.src === this._defaultSrc) {
             return;
           }
 
           this._setLoaded();
+          this._dispatchLoaded();
+        },
+
+        /**
+         * Error callback when image fails to load. Reset component, removing
+         * extension from the extensions array and attempt to reload.
+         *
+         * @param {Event} Error event
+         */
+        _onImageLoadError: function(event) {
+          if (this._extensionArray.length <= 1) {
+            this.fire('tc-webp-error');
+            return;
+          }
+
+          var target = event.target;
+          var extIndex;
+          var ext;
+          if (target.src && target.src !== '') {
+            extIndex = target.src.lastIndexOf('.') + 1;
+            ext = target.src.substr(extIndex);
+          } else {
+            extIndex = target.srcset.lastIndexOf('.') + 1;
+            var trimmed = target.srcset.substr(extIndex);
+            ext = trimmed.match(/\S+/g)[0];
+          }
+
+          if (ext && ext !== '') {
+            var extensions = this.extensions.split(',');
+            extensions.splice(
+              extensions.indexOf(ext, 1)
+            );
+            this.set('extensions', extensions.join());
+          } else {
+            this.fire('tc-webp-error');
+          }
         }
 
       });
