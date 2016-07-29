@@ -22,6 +22,7 @@
       <template>
         <tc-webp
           src="../demo/images/myImage.png"
+          alt="WebP Test"
         ></tc-webp>
       </template>
     </test-fixture>
@@ -30,6 +31,7 @@
       <template>
         <tc-webp
           src="../demo/images/myImage"
+          alt="WebP Test"
         ></tc-webp>
       </template>
     </test-fixture>
@@ -38,8 +40,8 @@
       suite('tc-webp basic', function() {
 
         test('instantiating the element works', function() {
-          var element = fixture('basic');
-          assert.equal(element.is, 'tc-webp');
+          var el = fixture('basic');
+          assert.equal(el.is, 'tc-webp');
         });
 
         test('component has img element containing default base64 src', function() {
@@ -59,15 +61,25 @@
       suite('tc-webp src with file extension', function() {
 
         test('instantiating the element works', function() {
-          var element = fixture('image-load-extension');
-          assert.equal(element.is, 'tc-webp');
+          var el = fixture('image-load-extension');
+          assert.equal(el.is, 'tc-webp');
         });
 
         test('fires load event', function(done) {
           var el = fixture('image-load-extension');
-          el.addEventListener('tc-webp-loaded', function(event) {
+
+          function loadedHandler() {
+            el.removeEventListener('tc-webp-loaded', loadedHandler);
             done();
-          });
+          }
+
+          el.addEventListener('tc-webp-loaded', loadedHandler);
+        });
+
+        test('alt attr populated correctly', function() {
+          var el = fixture('image-load-extension');
+          var img = el.$$('img');
+          assert.equal(img.alt, 'WebP Test');
         });
 
       });
@@ -75,19 +87,111 @@
       suite('tc-webp src with no file extension', function() {
 
         test('instantiating the element works', function() {
-          var element = fixture('image-no-extension');
-          assert.equal(element.is, 'tc-webp');
+          var el = fixture('image-no-extension');
+          assert.equal(el.is, 'tc-webp');
         });
 
         test('fires load event', function(done) {
-          var el = fixture('image-load-extension');
-          el.addEventListener('tc-webp-loaded', function(event) {
-            assert.equal(1, 1);
+          var el = fixture('image-no-extension');
+
+          function loadedHandler() {
+            el.removeEventListener('tc-webp-loaded', loadedHandler);
             done();
-          });
+          }
+
+          el.addEventListener('tc-webp-loaded', loadedHandler);
         });
 
       });
+
+      suite('updateBaseVariables tests', function() {
+
+        var file = 'myTest';
+
+        test('it works with .ext', function() {
+          var el = fixture('basic');
+          el._updateBaseVariables(file + '.png');
+          assert.equal(el._basePath, 'myTest');
+        });
+
+        test('it works without ext', function() {
+          var el = fixture('basic');
+          el._updateBaseVariables(file);
+          assert.equal(el._basePath, 'myTest');
+        });
+
+        test('it works if last dot more than 4 chars from end', function() {
+          var el = fixture('basic');
+          var relPath = '../some/relative/path';
+          el._updateBaseVariables(relPath);
+          assert.equal(el._basePath, relPath);
+        });
+      });
+
+      suite('updatePicture tests', function() {
+
+        test(
+          'picture element contains 1 source element and img as default',
+          function() {
+            var el = fixture('image-no-extension');
+            el._updatePicture('test', ['png', 'webp'], true);
+
+            var sources = el.querySelectorAll('source');
+            var img = el.querySelectorAll('img');
+
+            assert.equal(sources.length, 1);
+            assert.equal(img.length, 1);
+          }
+        );
+
+        test(
+          'picture element contains just one image element if only 1 format',
+          function() {
+            var el = fixture('image-no-extension');
+            el._updatePicture('test', ['webp'], true);
+
+            var sources = el.querySelectorAll('source');
+            var img = el.querySelectorAll('img');
+
+            assert.equal(sources.length, 0);
+            assert.equal(img.length, 1);
+          }
+        )
+
+      });
+
+      suite('getSrcSet tests', function() {
+
+        test('srcset without retina', function() {
+          var el = fixture('basic');
+          var srcset = el._getSrcSet('test', 'png');
+          assert.equal(srcset, 'test.png');
+        });
+
+        test('srcset with retina', function() {
+          var el = fixture('basic');
+          el.retina = true;
+          var srcset = el._getSrcSet('test', 'png');
+          assert.equal(srcset, 'test.png 1x, test-2x.png 2x');
+        });
+
+        test('srcset with retina and amended retina extension', function() {
+          var el = fixture('basic');
+          el.retina = true;
+          el.retinaExtension = '-bob';
+          var srcset = el._getSrcSet('test', 'png');
+          assert.equal(srcset, 'test.png 1x, test-bob.png 2x');
+        });
+
+        test('srcset with retina, but svg', function() {
+          var el = fixture('basic');
+          el.retina = true;
+          var srcset = el._getSrcSet('test', 'svg');
+          assert.equal(srcset, 'test.svg');
+        });
+
+      });
+
     </script>
   </body>
 </html>

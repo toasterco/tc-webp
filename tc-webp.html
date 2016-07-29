@@ -165,7 +165,11 @@ Example:
          */
         _updateBaseVariables: function(src) {
           var extIndex = src.lastIndexOf('.');
-          this._basePath = extIndex > -1 ? src.substring(0, extIndex) : src;
+          if (src.substring(extIndex).length > 4) {
+            this._basePath = src;
+          } else {
+            this._basePath = extIndex > -1 ? src.substring(0, extIndex) : src;
+          }
         },
 
         /**
@@ -200,7 +204,7 @@ Example:
         _updatePicture: function(basePath, extensionArray, asyncAttached) {
           this._setUnloaded();
 
-          if (!asyncAttached) {
+          if (!asyncAttached || this.src === '') {
             this._img.src = this._defaultSrc;
             return;
           }
@@ -250,7 +254,7 @@ Example:
           ext = ext.indexOf('.') === 0 ? ext : '.' + ext;
           srcset = basePath + ext;
 
-          if (this.retina) {
+          if (this.retina && ext !== '.svg') {
             srcset += ' 1x, ' + basePath + this.retinaExtension + ext + ' 2x';
           }
 
@@ -315,7 +319,6 @@ Example:
          */
         _onImageLoaded: function() {
           // Safari doesn't seem to set e.target correctly?
-          console.log('loaded');
           if (this._img.src === this._defaultSrc) {
             return;
           }

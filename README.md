@@ -38,3 +38,5 @@ Running `polymer test` will run tests. By default, selenium tests will be run ag
 [SafariDriver extension](https://github.com/SeleniumHQ/selenium/wiki/SafariDriver#getting-started) to be installed.
 
 If you want to run tests against individual browsers, run `polymer test -l chrome`
+
+** NOTE: Firefox 47.0.0 breaks FirefoxDriver working with Selenium. To fix, either downgrade to 46 or upgrade to 47.0.1
