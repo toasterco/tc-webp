@@ -111,7 +111,7 @@
         test('it works with .ext', function() {
           var el = fixture('basic');
           el._updateBaseVariables(file + '.png');
-          assert.equal(el._basePath, 'myTest');
+          assert.equal(el._basePath, file);
         });
 
         test('it works without ext', function() {
